@@ -6,7 +6,7 @@
  * https://github.com/kuhnza/angular-google-places-autocomplete/blob/master/LICENSE
  */
 
- 'use strict';
+'use strict';
 
 angular.module('google.places', [])
   /**
@@ -18,9 +18,15 @@ angular.module('google.places', [])
         if (!$window.google) {
             console.info('Global `google` var missing. Did you forget to include the places API script?');
         }
-
     return $window.google;
   }])
+  .factory('jqueryApi', ['window', function ($window) {
+        if (!$window.$) {
+            console.info('Global $ var missing. Did you forget to include the jquery API script?')
+        }
+    return $window.$;
+  }])
+
 
   /**
    * Autocomplete directive. Use like this:
@@ -28,8 +34,8 @@ angular.module('google.places', [])
    * <input type="text" g-places-autocomplete ng-model="myScopeVar" />
    */
   .directive('gPlacesAutocomplete',
-        [ '$parse', '$compile', '$timeout', '$document', 'googlePlacesApi',
-        function ($parse, $compile, $timeout, $document, google) {
+        [ '$parse', '$compile', '$timeout', '$document', 'googlePlacesApi', 'jqueryApi',
+        function ($parse, $compile, $timeout, $document, google, $) {
 
             return {
                 restrict: 'A',
@@ -52,6 +58,35 @@ angular.module('google.places', [])
                         hotkeys = [keymap.tab, keymap.enter, keymap.esc, keymap.up, keymap.down],
                         _autocompleteService = null,
                         _placesService = null;
+
+                    (function($){
+                        $.fn.displayChange = function(fn){
+                            $this = $(this);
+                            var state = {
+                                old: $this.attr('style'),
+                            };
+    
+                            var intervalID = setInterval(function(){
+                                if( $this.attr('style') != state.old ){
+                                    state.change = $this.attr('style');
+                                    fn(state, intervalID);
+                                    state.old = state.change;
+                                } else {
+                                    fn(state, intervalID);
+                                }
+                            }, 100);
+                        }
+    
+                        $(function(){
+                            $(element).displayChange(function(obj, interval){
+                            if (obj.change && obj.old && obj.change === obj.old) {
+                                $(element).unbind('displayChange');
+                                $(element).removeAttr('style');
+                                clearInterval(interval);
+                            }
+                            });
+                        })
+                    })($);
 
                     (function init() {
                         $scope.query = '';
